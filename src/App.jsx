@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import InputPanel   from './components/InputPanel'
 import SlidePreview from './components/SlidePreview'
 import EditPanel    from './components/EditPanel'
@@ -6,7 +6,10 @@ import DownloadBar  from './components/DownloadBar'
 import { generateCarousel, modifySlides } from './utils/api'
 import { exportAllSlides, exportSingleSlide } from './utils/exportSlides'
 
-// ─── Piccolo hook Toast ───────────────────────────────────────────────────────
+// In produzione (Vercel) la key è nell'env server — nessun input richiesto all'utente
+const IS_PROD = import.meta.env.PROD
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
 function useToast() {
   const [toast, setToast] = useState(null)
   const show = useCallback((msg, type = 'info') => {
@@ -16,7 +19,7 @@ function useToast() {
   return { toast, show }
 }
 
-// ─── Modale API key ───────────────────────────────────────────────────────────
+// ─── Modale API key (solo uso locale/dev) ────────────────────────────────────
 function ApiKeyModal({ onSave }) {
   const [val, setVal] = useState('')
   return (
@@ -25,7 +28,7 @@ function ApiKeyModal({ onSave }) {
         <div className="text-2xl mb-1">🔑</div>
         <h2 className="text-xl font-black text-pagamee-dark mb-1">Anthropic API Key</h2>
         <p className="text-sm text-pagamee-gray mb-5">
-          Inserisci la tua API key Anthropic. Viene salvata solo nel browser (localStorage), mai inviata ad altri server.
+          Inserisci la tua API key Anthropic per usare l'app in locale. Viene salvata solo in questo browser.
         </p>
         <input
           type="password"
@@ -51,50 +54,47 @@ function ApiKeyModal({ onSave }) {
   )
 }
 
-// ─── App principale ───────────────────────────────────────────────────────────
+// ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  // State globale
   const [slides,       setSlides]       = useState([])
   const [currentSlide, setCurrentSlide] = useState(0)
   const [loading,      setLoading]      = useState(false)
   const [modifying,    setModifying]    = useState(false)
   const [downloading,  setDownloading]  = useState(false)
 
-  // Form
   const [theme,     setTheme]     = useState('')
   const [tov,       setTov]       = useState('Educativo')
   const [numSlides, setNumSlides] = useState(7)
 
-  // API Key
-  const [apiKey,        setApiKey]        = useState(() => localStorage.getItem('pagamee_api_key') || '')
-  const [showKeyModal,  setShowKeyModal]  = useState(false)
-  const [showKeyInput,  setShowKeyInput]  = useState(false)
-  const [keyDraft,      setKeyDraft]      = useState('')
+  // API key — usata solo in locale; in produzione il server usa la sua env var
+  const [apiKey,       setApiKey]       = useState(() => localStorage.getItem('pagamee_api_key') || '')
+  const [showKeyModal, setShowKeyModal] = useState(false)
+  const [showKeyInput, setShowKeyInput] = useState(false)
+  const [keyDraft,     setKeyDraft]     = useState('')
 
-  // Refs
-  const slideRefs  = useRef([])   // punta ai wrapper dei render off-screen in SlidePreview
-  const previewRef = useRef(null) // scroll target
+  const slideRefs  = useRef([])
+  const previewRef = useRef(null)
 
   const { toast, show: showToast } = useToast()
 
-  // ── Genera carosello ──────────────────────────────────────────────────────
+  // ── Genera ────────────────────────────────────────────────────────────────
   const handleGenerate = async () => {
     if (!theme.trim()) {
       showToast('Inserisci un tema per il carosello', 'error')
       return
     }
 
-    // Legge sempre da localStorage per evitare stale closure dopo saveApiKey
-    const key = apiKey || localStorage.getItem('pagamee_api_key') || ''
-    if (!key) {
-      setShowKeyModal(true)
-      return
+    // In locale serve la key; in produzione il proxy usa la env var del server
+    if (!IS_PROD) {
+      const key = apiKey || localStorage.getItem('pagamee_api_key') || ''
+      if (!key) { setShowKeyModal(true); return }
     }
 
     setLoading(true)
     setSlides([])
 
     try {
+      const key = IS_PROD ? '' : (apiKey || localStorage.getItem('pagamee_api_key') || '')
       const data = await generateCarousel(theme, tov, numSlides, key)
       if (!data?.slides?.length) throw new Error('Nessuna slide generata')
 
@@ -102,7 +102,6 @@ export default function App() {
       setCurrentSlide(0)
       slideRefs.current = []
 
-      // Scroll alla preview dopo un tick (render)
       setTimeout(() => {
         previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 150)
@@ -124,58 +123,47 @@ export default function App() {
     if (!instruction.trim()) return
     setModifying(true)
     try {
-      const data = await modifySlides(slides, instruction, apiKey)
+      const key = IS_PROD ? '' : apiKey
+      const data = await modifySlides(slides, instruction, key)
       if (data?.slides?.length) {
         setSlides(data.slides)
         showToast('Carosello aggiornato! ✨')
       }
     } catch (err) {
-      console.error(err)
       showToast('Errore nella modifica. Riprova.', 'error')
     } finally {
       setModifying(false)
     }
   }
 
-  // ── Editing inline ────────────────────────────────────────────────────────
-  const handleUpdateSlide = useCallback((index, updatedSlide) => {
-    setSlides(prev => prev.map((s, i) => i === index ? updatedSlide : s))
+  const handleUpdateSlide = useCallback((index, updated) => {
+    setSlides(prev => prev.map((s, i) => i === index ? updated : s))
   }, [])
 
-  // ── Download singola ──────────────────────────────────────────────────────
   const handleDownloadSingle = async index => {
     const wrapper = slideRefs.current[index]
-    if (!wrapper) { showToast('Elemento non pronto. Riprova tra un secondo.', 'error'); return }
+    if (!wrapper) { showToast('Elemento non pronto. Riprova.', 'error'); return }
     try {
       await exportSingleSlide(wrapper, `slide-${String(index + 1).padStart(2, '0')}.png`)
       showToast(`Slide ${index + 1} scaricata! ⬇️`)
-    } catch (err) {
-      console.error(err)
-      showToast('Errore nel download. Riprova.', 'error')
-    }
+    } catch { showToast('Errore nel download.', 'error') }
   }
 
-  // ── Download tutte ────────────────────────────────────────────────────────
   const handleDownloadAll = async () => {
     setDownloading(true)
     try {
       await exportAllSlides(slideRefs.current, slides.length)
       showToast(`ZIP con ${slides.length} slide scaricato! 🎉`)
-    } catch (err) {
-      console.error(err)
-      showToast('Errore nel download ZIP. Riprova.', 'error')
-    } finally {
-      setDownloading(false)
-    }
+    } catch { showToast('Errore nel download ZIP.', 'error') }
+    finally { setDownloading(false) }
   }
 
-  // ── Salva API key ─────────────────────────────────────────────────────────
   const saveApiKey = key => {
     setApiKey(key)
     localStorage.setItem('pagamee_api_key', key)
     setShowKeyModal(false)
     setShowKeyInput(false)
-    showToast('API key salvata! Ora clicca "Genera Carosello" 🔑')
+    showToast('API key salvata! 🔑')
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -185,7 +173,6 @@ export default function App() {
       {/* ── Header ────────────────────────────────────────────────────── */}
       <header className="bg-white border-b border-pagamee-border sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          {/* Brand */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <img
               src="/logo.png"
@@ -201,21 +188,23 @@ export default function App() {
             </div>
           </div>
 
-          {/* API key toggle */}
-          <button
-            onClick={() => { setShowKeyInput(v => !v); setKeyDraft(apiKey) }}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
-              apiKey
-                ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
-                : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
-            }`}
-          >
-            {apiKey ? '🔑 API key ✓' : '🔑 Imposta API key'}
-          </button>
+          {/* Bottone API key — visibile SOLO in locale */}
+          {!IS_PROD && (
+            <button
+              onClick={() => { setShowKeyInput(v => !v); setKeyDraft(apiKey) }}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                apiKey
+                  ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
+                  : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
+              }`}
+            >
+              {apiKey ? '🔑 API key ✓' : '🔑 Imposta API key'}
+            </button>
+          )}
         </div>
 
-        {/* API key inline editor */}
-        {showKeyInput && (
+        {/* API key inline editor — solo in locale */}
+        {!IS_PROD && showKeyInput && (
           <div className="border-t border-pagamee-border bg-pagamee-bg">
             <div className="max-w-4xl mx-auto px-4 py-3 flex gap-2">
               <input
@@ -236,7 +225,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => setShowKeyInput(false)}
-                className="px-3 py-2 text-sm text-pagamee-gray hover:text-pagamee-dark rounded-lg transition-colors"
+                className="px-3 py-2 text-sm text-pagamee-gray hover:text-pagamee-dark"
               >
                 ✕
               </button>
@@ -247,8 +236,6 @@ export default function App() {
 
       {/* ── Main ──────────────────────────────────────────────────────── */}
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-
-        {/* Hero */}
         <div className="text-center pb-2">
           <h1 className="text-3xl md:text-4xl font-black text-pagamee-dark tracking-tight">
             Genera caroselli Instagram
@@ -258,7 +245,6 @@ export default function App() {
           </p>
         </div>
 
-        {/* Form input */}
         <InputPanel
           theme={theme}         setTheme={setTheme}
           tov={tov}             setTov={setTov}
@@ -267,10 +253,8 @@ export default function App() {
           loading={loading}
         />
 
-        {/* Preview + Edit + Download — visibili solo dopo la generazione */}
         {slides.length > 0 && (
           <div ref={previewRef} className="space-y-5 scroll-mt-20">
-
             <SlidePreview
               slides={slides}
               currentSlide={currentSlide}
@@ -278,7 +262,6 @@ export default function App() {
               slideRefs={slideRefs}
               onDownloadSingle={handleDownloadSingle}
             />
-
             <EditPanel
               slide={slides[currentSlide]}
               slideIndex={currentSlide}
@@ -286,14 +269,11 @@ export default function App() {
               onModifyAI={handleModifyAI}
               modifying={modifying}
             />
-
             <DownloadBar
               onDownloadAll={handleDownloadAll}
               downloading={downloading}
               slideCount={slides.length}
             />
-
-            {/* Reset */}
             <div className="text-center pb-8">
               <button
                 onClick={() => { setSlides([]); setTheme(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
@@ -306,7 +286,7 @@ export default function App() {
         )}
       </main>
 
-      {/* ── Loading overlay ────────────────────────────────────────────── */}
+      {/* Loading overlay */}
       {loading && (
         <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-10 text-center shadow-2xl max-w-xs w-full">
@@ -318,18 +298,14 @@ export default function App() {
         </div>
       )}
 
-      {/* ── API key modal (primo accesso) ──────────────────────────────── */}
-      {showKeyModal && <ApiKeyModal onSave={saveApiKey} />}
+      {/* Modale API key — solo in locale */}
+      {!IS_PROD && showKeyModal && <ApiKeyModal onSave={saveApiKey} />}
 
-      {/* ── Toast ─────────────────────────────────────────────────────── */}
+      {/* Toast */}
       {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl text-sm font-semibold shadow-xl animate-fade-in max-w-xs ${
-            toast.type === 'error'
-              ? 'bg-red-600 text-white'
-              : 'bg-pagamee-dark text-white'
-          }`}
-        >
+        <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl text-sm font-semibold shadow-xl animate-fade-in max-w-xs ${
+          toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-pagamee-dark text-white'
+        }`}>
           {toast.msg}
         </div>
       )}

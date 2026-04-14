@@ -103,14 +103,10 @@ IMPORTANTE: restituisci SOLO JSON valido, nessun markdown, nessun testo aggiunti
 // ─── Helper headers ───────────────────────────────────────────────────────────
 function buildHeaders(apiKey) {
   if (IS_PROD) {
-    // Il proxy Vercel gestisce auth server-side; passiamo la key client solo come
-    // fallback per ambienti senza env var (es. preview branch senza secrets).
-    return {
-      'content-type':      'application/json',
-      'x-client-api-key':  apiKey || '',
-    }
+    // In produzione il proxy Vercel usa ANTHROPIC_API_KEY dal server — nessuna key client necessaria
+    return { 'content-type': 'application/json' }
   }
-  // Locale: chiamata diretta al browser Anthropic
+  // Locale: chiamata diretta con key da localStorage
   return {
     'x-api-key':                                 apiKey,
     'anthropic-version':                         '2023-06-01',
