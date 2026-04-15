@@ -27,12 +27,12 @@ const C = {
 const font = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 
 // ── Font size adattiva ────────────────────────────────────────────────────────
-function titleSize(text, base = 32, min = 20) {
+function titleSize(text, base = 36, min = 24) {
   if (!text) return base
   const len = text.replace(/\n/g, '').length
   if (len > 70) return min
-  if (len > 55) return Math.round(base * 0.78)
-  if (len > 40) return Math.round(base * 0.88)
+  if (len > 55) return Math.round(base * 0.80)
+  if (len > 40) return Math.round(base * 0.90)
   return base
 }
 
@@ -90,7 +90,7 @@ function Dots({ total, current, light = false }) {
 // COVER
 // ══════════════════════════════════════════════════════════════════════════════
 function CoverSlide({ slide, index, total, slideRef }) {
-  const fs = titleSize(slide.title, 33, 22)
+  const fs = titleSize(slide.title, 36, 24)
 
   return (
     <div ref={slideRef} style={{
@@ -138,15 +138,16 @@ function CoverSlide({ slide, index, total, slideRef }) {
         </div>
       </div>
 
-      {/* Contenuto principale — allineato in basso */}
+      {/* Contenuto principale — centrato verticalmente, allineato a sinistra */}
       <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        padding: '0 34px 68px',
+        position: 'absolute', top: 44, left: 0, right: 0, bottom: 44,
+        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        padding: '0 38px',
       }}>
 
         {/* Emoji */}
         {slide.emoji && (
-          <div style={{ fontSize: 52, lineHeight: 1, marginBottom: 14 }}>
+          <div style={{ fontSize: 54, lineHeight: 1, marginBottom: 18 }}>
             {slide.emoji}
           </div>
         )}
@@ -154,14 +155,14 @@ function CoverSlide({ slide, index, total, slideRef }) {
         {/* Etichetta categoria */}
         <div style={{
           display: 'inline-flex', alignItems: 'center',
-          gap: 6, marginBottom: 14,
+          gap: 6, marginBottom: 16,
         }}>
           <div style={{
-            width: 20, height: 3, borderRadius: 2,
+            width: 22, height: 3, borderRadius: 2,
             background: C.cyan,
           }} />
           <span style={{
-            fontSize: 9, fontWeight: 800, color: C.cyan,
+            fontSize: 10, fontWeight: 800, color: C.cyan,
             letterSpacing: 2.5, textTransform: 'uppercase',
           }}>
             DIRITTO DEL LAVORO
@@ -174,7 +175,7 @@ function CoverSlide({ slide, index, total, slideRef }) {
           fontWeight: 900,
           color: C.white,
           lineHeight: 1.18,
-          margin: '0 0 12px',
+          margin: '0 0 16px',
           letterSpacing: -0.6,
           whiteSpace: 'pre-line',
         }}>
@@ -184,10 +185,10 @@ function CoverSlide({ slide, index, total, slideRef }) {
         {/* Sottotitolo */}
         {slide.subtitle && (
           <p style={{
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: 400,
-            color: 'rgba(255,255,255,0.48)',
-            lineHeight: 1.5,
+            color: 'rgba(255,255,255,0.52)',
+            lineHeight: 1.55,
             margin: 0,
           }}>
             {slide.subtitle}
@@ -212,8 +213,8 @@ function CoverSlide({ slide, index, total, slideRef }) {
 // ══════════════════════════════════════════════════════════════════════════════
 function ContentSlide({ slide, index, total, slideRef }) {
   const hasHL  = !!(slide.highlight_number?.trim())
-  const fs     = titleSize(slide.title, 26, 18)
-  const bodyFs = hasHL ? 13 : 15
+  const fs     = titleSize(slide.title, 28, 20)
+  const bodyFs = hasHL ? 14 : 17
 
   return (
     <div ref={slideRef} style={{
@@ -233,12 +234,12 @@ function ContentSlide({ slide, index, total, slideRef }) {
         {String(index + 1).padStart(2, '0')} /{String(total).padStart(2, '0')}
       </div>
 
-      {/* Area contenuto */}
+      {/* Area contenuto — centrata verticalmente, allineata a sinistra */}
       <div style={{
         position: 'absolute',
         top: 28, left: 0, right: 0, bottom: 50,
-        padding: '18px 34px 10px',
-        display: 'flex', flexDirection: 'column',
+        padding: '16px 36px 10px',
+        display: 'flex', flexDirection: 'column', justifyContent: 'center',
       }}>
 
         {/* Highlight number — elemento visivo principale */}
@@ -326,7 +327,7 @@ function ContentSlide({ slide, index, total, slideRef }) {
 // CTA
 // ══════════════════════════════════════════════════════════════════════════════
 function CTASlide({ slide, index, total, slideRef }) {
-  const fs = titleSize(slide.title, 30, 20)
+  const fs = titleSize(slide.title, 34, 22)
 
   return (
     <div ref={slideRef} style={{
@@ -402,11 +403,11 @@ function CTASlide({ slide, index, total, slideRef }) {
         {/* Body */}
         {slide.body && (
           <p style={{
-            fontSize: 13, fontWeight: 400,
-            color: 'rgba(255,255,255,0.62)',
+            fontSize: 15, fontWeight: 400,
+            color: 'rgba(255,255,255,0.65)',
             lineHeight: 1.65,
             margin: '0 0 24px',
-            maxWidth: 360,
+            maxWidth: 380,
           }}>
             {slide.body}
           </p>
