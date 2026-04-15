@@ -3,8 +3,9 @@
 // Il template engine viene usato SOLO se la rete è irraggiungibile.
 import { generateFromTemplate } from './templates'
 
-const MODEL   = 'anthropic/claude-3-5-haiku'
-const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const OPENROUTER_KEY = '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'
+const MODEL          = 'anthropic/claude-3-5-haiku'
+const API_URL        = 'https://openrouter.ai/api/v1/chat/completions'
 
 // ── Prompt creativo — nessun template, libertà totale ────────────────────────
 function buildPrompt(theme, tov, numSlides) {
@@ -132,11 +133,11 @@ Rispondi SOLO con il JSON — nessun testo aggiuntivo, nessuna spiegazione.`
 }
 
 // ── Chiamata OpenRouter ───────────────────────────────────────────────────────
-async function callAI(theme, tov, numSlides, apiKey) {
+async function callAI(theme, tov, numSlides) {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${OPENROUTER_KEY}`,
       'Content-Type':  'application/json',
       'HTTP-Referer':  'https://pagamee.it',
       'X-Title':       'Pagamee Carousel Generator',
@@ -169,10 +170,9 @@ async function callAI(theme, tov, numSlides, apiKey) {
 }
 
 // ── Export principale ─────────────────────────────────────────────────────────
-export async function generateCarousel(theme, tov, numSlides, apiKey) {
+export async function generateCarousel(theme, tov, numSlides) {
   try {
-    if (!apiKey) throw new Error('API key mancante')
-    return await callAI(theme, tov, numSlides, apiKey)
+    return await callAI(theme, tov, numSlides)
   } catch (err) {
     console.warn('[Pagamee] AI fallita, uso template locale:', err.message)
     const result = generateFromTemplate(theme, tov, numSlides)

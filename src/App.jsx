@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import InputPanel   from './components/InputPanel'
 import SlidePreview from './components/SlidePreview'
 import EditPanel    from './components/EditPanel'
@@ -6,13 +6,11 @@ import DownloadBar  from './components/DownloadBar'
 import { generateCarousel } from './utils/api'
 import { exportAllSlides, exportSingleSlide } from './utils/exportSlides'
 
-const LS_KEY = 'pagamee_or_key'
-
 function useToast() {
   const [toast, setToast] = useState(null)
   const show = useCallback((msg, type = 'info') => {
     setToast({ msg, type })
-    setTimeout(() => setToast(null), 4000)
+    setTimeout(() => setToast(null), 3000)
   }, [])
   return { toast, show }
 }
@@ -27,33 +25,9 @@ export default function App() {
   const [tov,       setTov]       = useState('Educativo')
   const [numSlides, setNumSlides] = useState(7)
 
-  // ── API key — salvata in localStorage, mai nel codice ─────────────────────
-  const [apiKey,      setApiKey]      = useState(() => localStorage.getItem(LS_KEY) ?? '')
-  const [showKeyInput, setShowKeyInput] = useState(false)
-  const [keyDraft,     setKeyDraft]    = useState('')
-
-  useEffect(() => {
-    if (!apiKey) setShowKeyInput(true)   // mostra il campo se non c'è ancora la chiave
-  }, [apiKey])
-
-  const saveKey = () => {
-    const trimmed = keyDraft.trim()
-    if (!trimmed) return
-    localStorage.setItem(LS_KEY, trimmed)
-    setApiKey(trimmed)
-    setShowKeyInput(false)
-    setKeyDraft('')
-  }
-
-  const clearKey = () => {
-    localStorage.removeItem(LS_KEY)
-    setApiKey('')
-    setKeyDraft('')
-    setShowKeyInput(true)
-  }
-
   const slideRefs  = useRef([])
   const previewRef = useRef(null)
+
   const { toast, show: showToast } = useToast()
 
   // ── Genera ────────────────────────────────────────────────────────────────
@@ -62,16 +36,11 @@ export default function App() {
       showToast('Inserisci un tema per il carosello', 'error')
       return
     }
-    if (!apiKey) {
-      showToast('Inserisci la tua API key OpenRouter prima di generare', 'error')
-      setShowKeyInput(true)
-      return
-    }
     setLoading(true)
     setSlides([])
     try {
-      const data = await generateCarousel(theme, tov, numSlides, apiKey)
-      if (data._fallback) showToast('⚠️ AI non raggiungibile — usa template locale', 'error')
+      const data = await generateCarousel(theme, tov, numSlides)
+      if (data._fallback) showToast('⚠️ AI non disponibile — contenuto dal template locale', 'error')
       else                showToast('✨ Carosello generato dall\'AI!')
       setSlides(data.slides)
       setCurrentSlide(0)
@@ -113,78 +82,20 @@ export default function App() {
 
       {/* ── Header ──────────────────────────────────────────────────── */}
       <header className="bg-white border-b border-pagamee-border sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <img
-              src="/logo.png"
-              alt="Pagamee"
-              className="h-8 w-auto"
-              onError={e => { e.currentTarget.style.display = 'none' }}
-            />
-            <div>
-              <div className="font-black text-pagamee-dark text-base leading-none">Pagamee</div>
-              <div className="text-[9px] font-bold text-pagamee-gray uppercase tracking-[2px]">
-                Carousel Generator
-              </div>
+        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
+          <img
+            src="/logo.png"
+            alt="Pagamee"
+            className="h-8 w-auto"
+            onError={e => { e.currentTarget.style.display = 'none' }}
+          />
+          <div>
+            <div className="font-black text-pagamee-dark text-base leading-none">Pagamee</div>
+            <div className="text-[9px] font-bold text-pagamee-gray uppercase tracking-[2px]">
+              Carousel Generator
             </div>
           </div>
-
-          {/* API Key badge / toggle */}
-          <button
-            onClick={() => { setShowKeyInput(v => !v); setKeyDraft('') }}
-            className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-colors ${
-              apiKey
-                ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
-                : 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100'
-            }`}
-          >
-            <span>{apiKey ? '🔑 AI Attiva' : '⚠️ Configura API Key'}</span>
-          </button>
         </div>
-
-        {/* ── Banner inserimento API key ────────────────────────────── */}
-        {showKeyInput && (
-          <div className="border-t border-pagamee-border bg-pagamee-bg">
-            <div className="max-w-4xl mx-auto px-4 py-3">
-              <p className="text-[11px] font-semibold text-pagamee-dark mb-2">
-                🔑 OpenRouter API Key — salvata solo nel tuo browser, mai nel codice
-              </p>
-              <div className="flex gap-2 items-center flex-wrap">
-                <input
-                  type="password"
-                  placeholder="sk-or-v1-…"
-                  value={keyDraft}
-                  onChange={e => setKeyDraft(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && saveKey()}
-                  className="flex-1 min-w-0 px-3 py-2 text-sm bg-white border border-pagamee-border rounded-lg
-                             focus:outline-none focus:border-pagamee-cyan transition-colors font-mono"
-                />
-                <button
-                  onClick={saveKey}
-                  disabled={!keyDraft.trim()}
-                  className="px-4 py-2 bg-pagamee-cyan text-white text-sm font-bold rounded-lg
-                             hover:bg-pagamee-cyan/90 disabled:opacity-40 transition-colors"
-                >
-                  Salva
-                </button>
-                {apiKey && (
-                  <button
-                    onClick={clearKey}
-                    className="px-4 py-2 bg-white border border-pagamee-border text-sm font-semibold
-                               text-pagamee-gray rounded-lg hover:border-red-300 hover:text-red-500 transition-colors"
-                  >
-                    Rimuovi
-                  </button>
-                )}
-              </div>
-              {apiKey && (
-                <p className="text-[10px] text-green-600 font-semibold mt-1.5">
-                  ✓ Chiave attiva: {apiKey.slice(0, 12)}…{apiKey.slice(-6)}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
       </header>
 
       {/* ── Main ────────────────────────────────────────────────────── */}
