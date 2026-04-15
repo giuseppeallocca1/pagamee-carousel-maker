@@ -1,361 +1,461 @@
-// ─── SlideRenderer ────────────────────────────────────────────────────────────
-// Renderizza una singola slide con CSS INLINE (necessario per html2canvas).
-// NON usare classi Tailwind qui dentro — solo style={{}}.
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── SlideRenderer — Design System Pagamee v2 ────────────────────────────────
+// CSS 100% inline per html2canvas. Nessuna classe Tailwind dentro le slide.
+// Canvas base: 540 × 540 px — export 2× = 1080 × 1080 px
 
 import React from 'react'
 
 export const SLIDE_SIZE = 540
 
+// ── Palette ──────────────────────────────────────────────────────────────────
 const C = {
-  primary:   '#00B4D8',
-  secondary: '#0077B6',
-  accent:    '#FFC107',
-  dark:      '#1A1A2E',
-  text:      '#3A4A6B',
-  gray:      '#6B7280',
-  white:     '#FFFFFF',
-  bgAlt:     '#F0F9FF',
+  cyan:       '#00B4D8',
+  cyanLight:  '#00D8FF',
+  cyanDark:   '#0090BE',
+  navy:       '#0D1B35',
+  navyMid:    '#152844',
+  blue:       '#0077B6',
+  amber:      '#FFC107',
+  amberLight: '#FFD454',
+  white:      '#FFFFFF',
+  offWhite:   '#F8FBFF',
+  bodyText:   '#2C3E6B',
+  mutedText:  '#7B8DB0',
+  border:     '#E8F3FB',
+  bg:         '#F0F9FF',
 }
 
-const font = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+const font = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 
-// ─── Progress dots ────────────────────────────────────────────────────────────
-function Dots({ total, current, light = false }) {
+// ── Font size adattiva ────────────────────────────────────────────────────────
+function titleSize(text, base = 32, min = 20) {
+  if (!text) return base
+  const len = text.replace(/\n/g, '').length
+  if (len > 70) return min
+  if (len > 55) return Math.round(base * 0.78)
+  if (len > 40) return Math.round(base * 0.88)
+  return base
+}
+
+// ── Barra gradiente top ───────────────────────────────────────────────────────
+function TopBar({ height = 6 }) {
   return (
-    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-      {Array.from({ length: total }, (_, i) => (
-        <div
-          key={i}
-          style={{
-            width:        i === current ? 18 : 6,
-            height:       6,
-            borderRadius: 3,
-            background:   i === current
-              ? (light ? C.accent : C.primary)
-              : (light ? 'rgba(255,255,255,0.25)' : '#E5E7EB'),
-            transition: 'width 0.3s',
-            flexShrink: 0,
-          }}
-        />
-      ))}
-    </div>
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0,
+      height,
+      background: `linear-gradient(90deg, ${C.cyan} 0%, ${C.cyanLight} 60%, ${C.cyan} 100%)`,
+    }} />
   )
 }
 
-// ─── Logo ─────────────────────────────────────────────────────────────────────
-function Logo({ invert = false, size = 52 }) {
+// ── Logo ──────────────────────────────────────────────────────────────────────
+function Logo({ invert = false, size = 48, bottom = 14, right = 18 }) {
   return (
     <img
       src="/logo.png"
       alt="Pagamee"
       crossOrigin="anonymous"
       style={{
-        position:   'absolute',
-        bottom:     14,
-        right:      18,
-        width:      size,
-        height:     size,
-        objectFit:  'contain',
-        filter:     invert ? 'brightness(0) invert(1)' : 'none',
+        position:  'absolute',
+        bottom, right,
+        width: size, height: size,
+        objectFit: 'contain',
+        filter: invert ? 'brightness(0) invert(1)' : 'none',
+        opacity: 0.9,
       }}
     />
   )
 }
 
-// ─── COVER ───────────────────────────────────────────────────────────────────
-function CoverSlide({ slide, index, total, slideRef }) {
+// ── Progress dots ─────────────────────────────────────────────────────────────
+function Dots({ total, current, light = false }) {
   return (
-    <div
-      ref={slideRef}
-      style={{
-        width:      SLIDE_SIZE,
-        height:     SLIDE_SIZE,
-        background: C.dark,
-        position:   'relative',
-        overflow:   'hidden',
-        fontFamily: font,
-        flexShrink: 0,
-      }}
-    >
-      {/* Sfere decorative */}
+    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+      {Array.from({ length: total }, (_, i) => (
+        <div key={i} style={{
+          width:        i === current ? 20 : 6,
+          height:       6,
+          borderRadius: 3,
+          background:   i === current
+            ? (light ? C.amber : C.cyan)
+            : (light ? 'rgba(255,255,255,0.2)' : C.border),
+          flexShrink: 0,
+          transition: 'width 0.3s',
+        }} />
+      ))}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COVER
+// ══════════════════════════════════════════════════════════════════════════════
+function CoverSlide({ slide, index, total, slideRef }) {
+  const fs = titleSize(slide.title, 33, 22)
+
+  return (
+    <div ref={slideRef} style={{
+      width: SLIDE_SIZE, height: SLIDE_SIZE,
+      background: `linear-gradient(160deg, ${C.navy} 0%, ${C.navyMid} 100%)`,
+      position: 'relative', overflow: 'hidden', fontFamily: font, flexShrink: 0,
+    }}>
+
+      {/* Glow destro — elemento decorativo principale */}
       <div style={{
-        position: 'absolute', width: 460, height: 460, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(0,180,216,0.28) 0%, transparent 68%)',
-        top: -140, right: -120,
-      }} />
-      <div style={{
-        position: 'absolute', width: 220, height: 220, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(0,180,216,0.14) 0%, transparent 70%)',
-        bottom: 30, left: -60,
+        position: 'absolute', top: -80, right: -100,
+        width: 380, height: 380, borderRadius: '50%',
+        background: `radial-gradient(circle, rgba(0,180,216,0.22) 0%, transparent 68%)`,
+        pointerEvents: 'none',
       }} />
 
-      {/* Top bar */}
+      {/* Glow sinistro basso */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0,
-        padding: '22px 28px',
+        position: 'absolute', bottom: -60, left: -80,
+        width: 240, height: 240, borderRadius: '50%',
+        background: `radial-gradient(circle, rgba(0,180,216,0.10) 0%, transparent 70%)`,
+        pointerEvents: 'none',
+      }} />
+
+      {/* Accent line top */}
+      <TopBar height={5} />
+
+      {/* Header row */}
+      <div style={{
+        position: 'absolute', top: 18, left: 28, right: 28,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <span style={{ fontSize: 11, fontWeight: 900, color: C.primary, letterSpacing: 2.5, textTransform: 'uppercase' }}>
-          pagamee.it
-        </span>
-        <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>
+        <div style={{
+          fontSize: 10, fontWeight: 800, color: C.cyan,
+          letterSpacing: 3, textTransform: 'uppercase',
+        }}>
+          PAGAMEE.IT
+        </div>
+        <div style={{
+          fontSize: 10, fontWeight: 600,
+          color: 'rgba(255,255,255,0.25)',
+          letterSpacing: 1,
+        }}>
           {index + 1} / {total}
-        </span>
+        </div>
       </div>
 
-      {/* Body */}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '28px 32px 72px' }}>
+      {/* Contenuto principale — allineato in basso */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        padding: '0 34px 68px',
+      }}>
+
+        {/* Emoji */}
         {slide.emoji && (
-          <div style={{ fontSize: 58, lineHeight: 1, marginBottom: 14 }}>{slide.emoji}</div>
+          <div style={{ fontSize: 52, lineHeight: 1, marginBottom: 14 }}>
+            {slide.emoji}
+          </div>
         )}
 
+        {/* Etichetta categoria */}
         <div style={{
-          display: 'inline-block',
-          padding: '4px 13px',
-          background: C.primary,
-          color: C.white,
-          borderRadius: 100,
-          fontSize: 9, fontWeight: 800,
-          textTransform: 'uppercase', letterSpacing: 2,
-          marginBottom: 14,
+          display: 'inline-flex', alignItems: 'center',
+          gap: 6, marginBottom: 14,
         }}>
-          CAROSELLO
+          <div style={{
+            width: 20, height: 3, borderRadius: 2,
+            background: C.cyan,
+          }} />
+          <span style={{
+            fontSize: 9, fontWeight: 800, color: C.cyan,
+            letterSpacing: 2.5, textTransform: 'uppercase',
+          }}>
+            DIRITTO DEL LAVORO
+          </span>
         </div>
 
+        {/* Titolo */}
         <h1 style={{
-          fontSize:      slide.title.length > 55 ? 24 : slide.title.length > 40 ? 27 : 31,
-          fontWeight:    900,
-          color:         C.white,
-          lineHeight:    1.22,
-          margin:        '0 0 10px',
-          letterSpacing: -0.5,
+          fontSize: fs,
+          fontWeight: 900,
+          color: C.white,
+          lineHeight: 1.18,
+          margin: '0 0 12px',
+          letterSpacing: -0.6,
+          whiteSpace: 'pre-line',
         }}>
           {slide.title}
         </h1>
 
+        {/* Sottotitolo */}
         {slide.subtitle && (
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.52)', lineHeight: 1.5, margin: 0 }}>
+          <p style={{
+            fontSize: 14,
+            fontWeight: 400,
+            color: 'rgba(255,255,255,0.48)',
+            lineHeight: 1.5,
+            margin: 0,
+          }}>
             {slide.subtitle}
           </p>
         )}
       </div>
 
-      {/* Barra accent bottom */}
+      {/* Accent line bottom */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         height: 4,
-        background: `linear-gradient(90deg, ${C.primary}, ${C.secondary})`,
+        background: `linear-gradient(90deg, ${C.cyan}, ${C.blue} 50%, ${C.cyan})`,
       }} />
 
-      {/* Logo */}
-      <Logo invert size={50} />
+      <Logo invert size={46} bottom={12} right={18} />
     </div>
   )
 }
 
-// ─── CONTENT ─────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// CONTENT
+// ══════════════════════════════════════════════════════════════════════════════
 function ContentSlide({ slide, index, total, slideRef }) {
-  const hasHighlight = slide.highlight_number && slide.highlight_number.trim()
-  const titleFontSize = slide.title.length > 45 ? 20 : slide.title.length > 30 ? 23 : 26
+  const hasHL  = !!(slide.highlight_number?.trim())
+  const fs     = titleSize(slide.title, 26, 18)
+  const bodyFs = hasHL ? 13 : 15
 
   return (
-    <div
-      ref={slideRef}
-      style={{
-        width:      SLIDE_SIZE,
-        height:     SLIDE_SIZE,
-        background: C.white,
-        position:   'relative',
-        overflow:   'hidden',
-        fontFamily: font,
-        flexShrink: 0,
-      }}
-    >
-      {/* Accent top */}
+    <div ref={slideRef} style={{
+      width: SLIDE_SIZE, height: SLIDE_SIZE,
+      background: C.white,
+      position: 'relative', overflow: 'hidden', fontFamily: font, flexShrink: 0,
+    }}>
+
+      <TopBar height={7} />
+
+      {/* Numero slide — top right badge */}
       <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0,
-        height: 6,
-        background: `linear-gradient(90deg, ${C.primary}, #00D8FF)`,
-      }} />
+        position: 'absolute', top: 18, right: 24,
+        fontSize: 9, fontWeight: 800,
+        color: C.cyan, letterSpacing: 2,
+      }}>
+        {String(index + 1).padStart(2, '0')} /{String(total).padStart(2, '0')}
+      </div>
 
-      {/* Content area */}
-      <div style={{ position: 'absolute', top: 26, left: 0, right: 0, bottom: 46, padding: '18px 32px 10px' }}>
+      {/* Area contenuto */}
+      <div style={{
+        position: 'absolute',
+        top: 28, left: 0, right: 0, bottom: 50,
+        padding: '18px 34px 10px',
+        display: 'flex', flexDirection: 'column',
+      }}>
 
-        {/* Overline */}
-        <div style={{ fontSize: 9, fontWeight: 900, color: C.primary, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 12 }}>
-          pagamee.it
-        </div>
-
-        {/* Title */}
-        <h2 style={{
-          fontSize:      titleFontSize,
-          fontWeight:    900,
-          color:         C.dark,
-          lineHeight:    1.22,
-          margin:        '0 0 18px',
-          letterSpacing: -0.3,
-        }}>
-          {slide.emoji && (
-            <span style={{ marginRight: 8 }}>{slide.emoji}</span>
-          )}
-          {slide.title}
-        </h2>
-
-        {/* Highlight number */}
-        {hasHighlight && (
-          <div style={{ textAlign: 'center', margin: '12px 0 16px', padding: '14px 0', borderRadius: 16, background: C.bgAlt }}>
+        {/* Highlight number — elemento visivo principale */}
+        {hasHL && (
+          <div style={{
+            background: C.bg,
+            borderRadius: 16,
+            padding: '16px 20px 12px',
+            marginBottom: 18,
+            borderLeft: `4px solid ${C.cyan}`,
+            textAlign: 'center',
+          }}>
             <div style={{
-              fontSize:      slide.highlight_number.length > 6 ? 60 : 76,
-              fontWeight:    900,
-              color:         C.primary,
-              lineHeight:    1,
+              fontSize: slide.highlight_number.length > 7 ? 58 : 72,
+              fontWeight: 900,
+              color: C.cyan,
+              lineHeight: 1,
               letterSpacing: -2,
             }}>
               {slide.highlight_number}
             </div>
             {slide.highlight_label && (
-              <div style={{ fontSize: 13, fontWeight: 600, color: C.gray, marginTop: 4 }}>
+              <div style={{
+                fontSize: 12, fontWeight: 600,
+                color: C.mutedText, marginTop: 5,
+                lineHeight: 1.3,
+              }}>
                 {slide.highlight_label}
               </div>
             )}
           </div>
         )}
 
-        {/* Body text */}
+        {/* Titolo con emoji inline */}
+        <h2 style={{
+          fontSize: fs,
+          fontWeight: 900,
+          color: C.navy,
+          lineHeight: 1.2,
+          margin: '0 0 14px',
+          letterSpacing: -0.3,
+          whiteSpace: 'pre-line',
+        }}>
+          {slide.emoji && !hasHL && (
+            <span style={{ marginRight: 8, fontSize: fs * 0.9 }}>
+              {slide.emoji}
+            </span>
+          )}
+          {slide.title}
+        </h2>
+
+        {/* Body */}
         {slide.body && (
-          <div style={{
-            fontSize:   hasHighlight ? 13 : 15,
-            color:      C.text,
-            lineHeight: 1.65,
-            fontWeight: 500,
+          <p style={{
+            fontSize: bodyFs,
+            fontWeight: 400,
+            color: C.bodyText,
+            lineHeight: 1.7,
+            margin: 0,
             whiteSpace: 'pre-line',
+            flex: 1,
           }}>
             {slide.body}
-          </div>
+          </p>
         )}
       </div>
 
       {/* Footer */}
       <div style={{
-        position:   'absolute', bottom: 0, left: 0, right: 0,
-        padding:    '8px 28px 8px 32px',
-        display:    'flex', justifyContent: 'space-between', alignItems: 'center',
-        borderTop:  '1px solid rgba(0,0,0,0.06)',
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: 50,
+        padding: '0 28px 0 34px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        borderTop: `1px solid ${C.border}`,
         background: C.white,
-        height:     46,
       }}>
         <Dots total={total} current={index} />
-        <span style={{ fontSize: 9, fontWeight: 700, color: '#CBD5E1', paddingRight: 64 }}>
-          {index + 1} / {total}
-        </span>
+        <Logo invert={false} size={40} bottom={5} right={18} />
       </div>
-
-      {/* Logo */}
-      <Logo invert={false} size={46} />
     </div>
   )
 }
 
-// ─── CTA ─────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// CTA
+// ══════════════════════════════════════════════════════════════════════════════
 function CTASlide({ slide, index, total, slideRef }) {
+  const fs = titleSize(slide.title, 30, 20)
+
   return (
-    <div
-      ref={slideRef}
-      style={{
-        width:      SLIDE_SIZE,
-        height:     SLIDE_SIZE,
-        background: `linear-gradient(145deg, #0A2540 0%, ${C.secondary} 100%)`,
-        position:   'relative',
-        overflow:   'hidden',
-        fontFamily: font,
-        flexShrink: 0,
-      }}
-    >
-      {/* Bagliore decorativo */}
+    <div ref={slideRef} style={{
+      width: SLIDE_SIZE, height: SLIDE_SIZE,
+      background: `linear-gradient(150deg, #0A2540 0%, ${C.blue} 100%)`,
+      position: 'relative', overflow: 'hidden', fontFamily: font, flexShrink: 0,
+    }}>
+
+      {/* Cerchio decorativo grande — bottom right */}
       <div style={{
-        position: 'absolute', bottom: -90, right: -90,
-        width: 300, height: 300, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(0,180,216,0.2) 0%, transparent 70%)',
+        position: 'absolute', bottom: -110, right: -110,
+        width: 340, height: 340, borderRadius: '50%',
+        background: `radial-gradient(circle, rgba(0,180,216,0.18) 0%, transparent 65%)`,
+        pointerEvents: 'none',
       }} />
+
+      {/* Cerchio piccolo — top left */}
       <div style={{
-        position: 'absolute', top: -60, left: -60,
-        width: 200, height: 200, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(255,193,7,0.08) 0%, transparent 70%)',
+        position: 'absolute', top: -50, left: -50,
+        width: 180, height: 180, borderRadius: '50%',
+        background: `radial-gradient(circle, rgba(255,193,7,0.07) 0%, transparent 70%)`,
+        pointerEvents: 'none',
       }} />
+
+      {/* Accent line top */}
+      <TopBar height={5} />
 
       {/* Contenuto centrato */}
       <div style={{
-        position:       'absolute', inset: 0,
-        display:        'flex', flexDirection: 'column',
-        alignItems:     'center', justifyContent: 'center',
-        padding:        '40px 48px',
-        textAlign:      'center',
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '40px 44px 60px',
+        textAlign: 'center',
       }}>
-        <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 2.5, marginBottom: 14 }}>
-          AGISCI ADESSO
+
+        {/* Eyebrow */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          marginBottom: 16,
+        }}>
+          <div style={{ width: 16, height: 2, background: 'rgba(255,255,255,0.3)', borderRadius: 1 }} />
+          <span style={{
+            fontSize: 9, fontWeight: 800,
+            color: 'rgba(255,255,255,0.4)',
+            letterSpacing: 3, textTransform: 'uppercase',
+          }}>
+            AGISCI ADESSO
+          </span>
+          <div style={{ width: 16, height: 2, background: 'rgba(255,255,255,0.3)', borderRadius: 1 }} />
         </div>
 
+        {/* Emoji */}
         {slide.emoji && (
-          <div style={{ fontSize: 50, marginBottom: 12, lineHeight: 1 }}>{slide.emoji}</div>
+          <div style={{ fontSize: 50, marginBottom: 14, lineHeight: 1 }}>
+            {slide.emoji}
+          </div>
         )}
 
+        {/* Titolo */}
         <h2 style={{
-          fontSize:      slide.title.length > 45 ? 22 : slide.title.length > 30 ? 25 : 28,
-          fontWeight:    900,
-          color:         C.white,
-          lineHeight:    1.22,
+          fontSize: fs,
+          fontWeight: 900,
+          color: C.white,
+          lineHeight: 1.18,
           letterSpacing: -0.5,
-          margin:        '0 0 18px',
+          margin: '0 0 16px',
+          whiteSpace: 'pre-line',
         }}>
           {slide.title}
         </h2>
 
+        {/* Body */}
         {slide.body && (
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.68)', lineHeight: 1.6, marginBottom: 26, maxWidth: 360 }}>
+          <p style={{
+            fontSize: 13, fontWeight: 400,
+            color: 'rgba(255,255,255,0.62)',
+            lineHeight: 1.65,
+            margin: '0 0 24px',
+            maxWidth: 360,
+          }}>
             {slide.body}
           </p>
         )}
 
         {/* CTA button */}
         <div style={{
-          display:      'inline-block',
-          padding:      '13px 36px',
-          background:   C.accent,
-          color:        C.dark,
-          fontSize:     16,
-          fontWeight:   800,
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '13px 36px',
+          background: C.amber,
+          color: C.navy,
+          fontSize: 15, fontWeight: 800,
           borderRadius: 100,
-          marginBottom: 12,
-          boxShadow:    '0 6px 20px rgba(255,193,7,0.45)',
           letterSpacing: -0.2,
+          boxShadow: `0 8px 28px rgba(255,193,7,0.5)`,
         }}>
-          pagamee.it
+          <span>pagamee.it</span>
+          <span style={{ fontSize: 16 }}>→</span>
         </div>
 
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>
+        {/* Tagline */}
+        <div style={{
+          marginTop: 14,
+          fontSize: 11, fontWeight: 500,
+          color: 'rgba(255,255,255,0.28)',
+          letterSpacing: 0.3,
+        }}>
           Analisi gratuita · Zero anticipi · Solo successo
         </div>
       </div>
 
       {/* Progress dots */}
-      <div style={{ position: 'absolute', bottom: 18, left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
+      <div style={{
+        position: 'absolute', bottom: 18, left: 0, right: 0,
+        display: 'flex', justifyContent: 'center',
+      }}>
         <Dots total={total} current={index} light />
       </div>
 
-      {/* Logo */}
-      <Logo invert size={50} />
+      <Logo invert size={44} bottom={10} right={18} />
     </div>
   )
 }
 
-// ─── Componente pubblico ──────────────────────────────────────────────────────
+// ── Componente pubblico ───────────────────────────────────────────────────────
 export default function SlideRenderer({ slide, index, total, slideRef }) {
   if (!slide) return null
-
   const props = { slide, index, total, slideRef }
-
-  if (slide.type === 'cover')   return <CoverSlide   {...props} />
-  if (slide.type === 'cta')     return <CTASlide     {...props} />
-  return                               <ContentSlide {...props} />
+  if (slide.type === 'cover') return <CoverSlide   {...props} />
+  if (slide.type === 'cta')   return <CTASlide     {...props} />
+  return                              <ContentSlide {...props} />
 }
