@@ -338,11 +338,11 @@ export function generateFromTemplate(theme, tov, numSlides) {
   const cta    = { type: 'cta',     ...data.cta[tovKey]   }
 
   const blocks       = data.blocks || []
-  // Cap content slides at available blocks — no duplicates ever
-  const contentCount = Math.min(numSlides - 2, blocks.length)
+  const contentCount = numSlides - 2
 
+  // Cycle through blocks without adjacent duplicates
   const contentSlides = Array.from({ length: contentCount }, (_, i) => {
-    const block = blocks[i]
+    const block = blocks[i % blocks.length]
     return { type: 'content', ...(block?.[tovKey] || block?.Educativo || {}) }
   })
 

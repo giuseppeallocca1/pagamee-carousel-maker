@@ -300,7 +300,6 @@ function ContentSlide({ slide, index, total, slideRef }) {
             lineHeight: 1.7,
             margin: 0,
             whiteSpace: 'pre-line',
-            flex: 1,
           }}>
             {slide.body}
           </p>
