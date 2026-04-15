@@ -152,8 +152,8 @@ export default function App() {
         <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-10 text-center shadow-2xl max-w-xs w-full">
             <div className="w-14 h-14 border-4 border-pagamee-cyan/20 border-t-pagamee-cyan rounded-full animate-spin mx-auto mb-5" />
-            <div className="font-black text-pagamee-dark text-xl mb-1">Generazione in corso…</div>
-            <div className="text-pagamee-gray text-sm">Composizione slide in corso.</div>
+            <div className="font-black text-pagamee-dark text-xl mb-1">Generazione AI in corso…</div>
+            <div className="text-pagamee-gray text-sm">Claude sta scrivendo i tuoi contenuti.</div>
           </div>
         </div>
       )}
