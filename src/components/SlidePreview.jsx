@@ -163,11 +163,21 @@ export default function SlidePreview({
         ))}
       </div>
 
-      {/* ── Render nascosti per l'export (off-screen) ────────────────────── */}
-      {/* Questi elementi sono nel DOM ma non visibili — html2canvas li cattura */}
+      {/* ── Render nascosti per l'export ─────────────────────────────────── */}
+      {/* Visibility hidden (non display:none) — le immagini si precaricano,
+          html2canvas clona e posiziona a (0,0) al momento dell'export.     */}
       <div
         aria-hidden="true"
-        style={{ position: 'fixed', left: -9999, top: 0, pointerEvents: 'none', zIndex: -1 }}
+        style={{
+          position:   'absolute',
+          top:        0,
+          left:       0,
+          width:      540,
+          overflow:   'hidden',
+          visibility: 'hidden',
+          pointerEvents: 'none',
+          zIndex: -1,
+        }}
       >
         {slides.map((s, i) => (
           <div key={i} ref={el => { slideRefs.current[i] = el }}>
